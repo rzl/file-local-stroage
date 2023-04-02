@@ -1,0 +1,25 @@
+{
+  "name": "file-local-stroage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rzl/file-local-stroage.git"
+  },
+  "keywords": [
+    "file",
+    "local",
+    "stroage",
+    "cache"
+  ],
+  "author": "rzl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rzl/file-local-stroage/issues"
+  },
+  "homepage": "https://github.com/rzl/file-local-stroage#readme"
+}
