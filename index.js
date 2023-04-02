@@ -118,6 +118,8 @@ class FileLocalStroage {
                 this.map[item] = str
             }
             return str
+        } else {
+            delete this.map[item]
         }
     }
     _getItem(item) {
