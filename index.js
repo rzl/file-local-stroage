@@ -158,9 +158,9 @@ class FileLocalStroage {
     }
 
     clear() {
-        for (let x in this.keys) {
-            fs.unlinkSync(path.join(this.stroagePath, x))
-        }
+        this.keys.forEach((item) => {
+            fs.unlinkSync(this.resolveItemPath(item))
+        })
     }
 }
 
