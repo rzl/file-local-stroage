@@ -58,7 +58,7 @@ class FileLocalStroage {
     }
     constructor(opt) {
         if (!opt) return this
-        Object.assign(opt, this)
+        Object.assign(this, opt)
         if (!fs.existsSync(this.stroageDir)) {
             try {
                 fs.mkdirSync(this.stroageDir)
@@ -70,7 +70,6 @@ class FileLocalStroage {
             fs.mkdirSync(this.stroagePath)
         }
         this.setAutoJson(opt.autoJson)
-        this.__All_FILE_LOCAL_STROAGE.push(this)
         this._proxy = new Proxy(this._map, {
             get: (target, key) => {
                 return this.getItem(key)
@@ -98,7 +97,9 @@ class FileLocalStroage {
         useMapCache: this.useMapCache,
         jsonSpace: this.jsonSpace
     }) {
-        return new FileLocalStroage(opt)
+        let fls = new FileLocalStroage(opt)
+        this.__All_FILE_LOCAL_STROAGE.push(fls)
+        return fls
     }
 
     resolveItemPath(item) {
