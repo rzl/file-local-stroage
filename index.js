@@ -37,6 +37,10 @@ class FileLocalStroage {
     jsonSpace = 4
 
     /**
+     * 文件后缀
+     */
+    suffix = '.json'
+    /**
      * 键值对会同步存在这里
      */
     _map = {}
@@ -72,7 +76,32 @@ class FileLocalStroage {
         this.setAutoJson(opt.autoJson)
         this._proxy = new Proxy(this._map, {
             get: (target, key) => {
-                return this.getItem(key)
+                if (!this.autoJson) {
+                    return this.getItem(key)
+                } else {
+                    var v =this.getItem(key)
+                    var handle = {
+                        get: (subTarget, name) => {
+                            var res = Reflect.get(subTarget, name)
+                            if (typeof res === 'object') {
+                                return new Proxy(res, handle)
+                            } else {
+                                return res
+                            }
+                        },
+                        set:(subTarget, name, value,receiver) => {
+                            var success = Reflect.set(subTarget, name, value, receiver);
+                            if (success) {
+                                return this.setItem(key, v)
+                            }
+                        },
+                        deleteProperty: (subTarget, name) => {
+                            Reflect.deleteProperty(subTarget, name);
+                            return this.setItem(key, v)
+                        },
+                    }
+                    return new Proxy(v, handle)
+                }
             },
             set: (target, key, value) => {
                 return this.setItem(key, value)
@@ -95,15 +124,19 @@ class FileLocalStroage {
         namespace: this.namespace,
         autoJson: this.autoJson,
         useMapCache: this.useMapCache,
-        jsonSpace: this.jsonSpace
+        jsonSpace: this.jsonSpace,
+        suffix: this.suffix
     }) {
+        if (!opt.autoJson) {
+            this.suffix = ''
+        }
         let fls = new FileLocalStroage(opt)
         this.__All_FILE_LOCAL_STROAGE.push(fls)
         return fls
     }
 
     resolveItemPath(item) {
-        return path.join(this.stroagePath, item)
+        return path.join(this.stroagePath, item + this.suffix)
     }
 
     _setItem(item, value) {

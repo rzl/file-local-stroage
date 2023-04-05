@@ -98,3 +98,19 @@ console.log(p.b)
 
 
 ```
+
+## 链式操作每次都会保存一次文件，不建议经常使用
+```js
+var p = fls.proxy
+
+var b = { a: {
+    bb: 'cc'
+}}
+// 设置一个键值对
+p.a = b
+p.a.a.bb = 'ab'
+p.a.c = []
+p.a.c[0] ='888'
+debugger
+delete p.a.c
+```
