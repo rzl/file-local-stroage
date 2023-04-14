@@ -127,7 +127,7 @@ class FileLocalStroage {
         jsonSpace: this.jsonSpace,
         suffix: this.suffix
     }) {
-        if (!opt.autoJson) {
+        if (opt.autoJson === false) {
             this.suffix = ''
         }
         let fls = new FileLocalStroage(opt)
