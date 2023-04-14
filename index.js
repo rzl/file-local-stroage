@@ -184,7 +184,7 @@ class FileLocalStroage {
     }
 
     get keys() {
-        return fs.readdirSync(this.stroagePath)
+        return fs.readdirSync(this.stroagePath).map(_ => path.basename(_, this.suffix))
     }
 
     loadStroage() {
