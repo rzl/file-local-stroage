@@ -207,6 +207,35 @@ export class FileLocalStroage {
     }
 }
 
+var _default = new FileLocalStroage(null)
+export default _default
+
+export interface Opt {
+      /**
+     * 存储目录 默认file-local-stroage-cache
+     */
+      stroageDir: string;
+      /**
+       * 当前存储的名称 默认default
+       */
+      namespace: string;
+      /**
+       * 是否自动转换JSON 默认true
+       */
+      autoJson: boolean;
+      /**
+       * json.stringify使用的空格 默认缩进4
+       */
+      jsonSpace: number;
+      /**
+       * 文件后缀 默认.json
+       */
+      suffix: string;
+}
+
+export const create = (opt: Opt):FileLocalStroage => { 
+    return _default.create.apply(_default, [opt])
+}
 
 FileLocalStroage.prototype.__All_FILE_LOCAL_STROAGE = new Array()
 
