@@ -150,7 +150,7 @@ export class FileLocalStroage {
         fs.writeFileSync(this.resolveItemPath(item), value.toString())
         return this
     }
-    __getItem(item) {
+    __getItem(item):any {
         let p = this.resolveItemPath(item)
         if (fs.existsSync(p)) {
             var str = fs.readFileSync(p)
@@ -162,8 +162,8 @@ export class FileLocalStroage {
             delete this.map[item]
         }
     }
-    getItem(item) {}
-    _getItem(item) {
+    getItem(item):any {}
+    _getItem(item):any {
         if (this.useMapCache && this.map[item]) {
             return this.map[item]
         }
@@ -174,7 +174,7 @@ export class FileLocalStroage {
         return this._setItem(item, JSON.stringify(value, null, this.jsonSpace))
     }
 
-    _getItemJson(item) {
+    _getItemJson(item):any {
         let str = this._getItem(item)
         if (str) {
             return JSON.parse(str)
@@ -198,12 +198,17 @@ export class FileLocalStroage {
         this.keys.forEach((item) => {
             this.__getItem(item)
         })
+        return this
     }
 
-    clear() {
+    clearAll() {
         this.keys.forEach((item) => {
             fs.unlinkSync(this.resolveItemPath(item))
         })
+    }
+
+    clear(item) {
+        fs.unlinkSync(this.resolveItemPath(item))
     }
 }
 

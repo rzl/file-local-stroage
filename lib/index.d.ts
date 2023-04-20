@@ -55,14 +55,15 @@ export declare class FileLocalStroage {
     setItem(item: any, value: any): void;
     _setItem(item: any, value: any): this;
     __getItem(item: any): any;
-    getItem(item: any): void;
+    getItem(item: any): any;
     _getItem(item: any): any;
     _setItemJson(item: any, value: any): this;
     _getItemJson(item: any): any;
     removeItem(item: any): this;
     get keys(): any;
-    loadStroage(): void;
-    clear(): void;
+    loadStroage(): this;
+    clearAll(): void;
+    clear(item: any): void;
 }
 declare var _default: FileLocalStroage;
 export default _default;
