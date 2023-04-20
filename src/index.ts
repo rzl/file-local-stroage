@@ -142,7 +142,7 @@ export class FileLocalStroage {
     }
 
     resolveItemPath(item) {
-        return path.join(this.stroagePath, item + this.suffix)
+        return path.join(this.stroagePath, encodeURIComponent(item) + this.suffix)
     }
     setItem(item, value) {}
     _setItem(item, value) {
@@ -191,7 +191,7 @@ export class FileLocalStroage {
     }
 
     get keys() {
-        return fs.readdirSync(this.stroagePath).map(_ => path.basename(_, this.suffix))
+        return fs.readdirSync(this.stroagePath).map(_ => decodeURIComponent(path.basename(_, this.suffix)))
     }
 
     loadStroage() {
