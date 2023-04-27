@@ -1,5 +1,10 @@
 var fs = require('fs');
 var path = require('path');
+/**
+ * 一个模拟浏览器localstorage的存储类
+ * @interface [Opt]
+ * @constructor 
+ */
 export class FileLocalStroage {
     /**
      * 存储目录
@@ -10,10 +15,12 @@ export class FileLocalStroage {
      */
     namespace = 'default';
     /**
+     * @ignore
+     */
+    _stroagePath = ''
+    /**
      * 当前存储目录，由存储目录与当前存储名称组成
     */
-    _stroagePath = ''
-    __All_FILE_LOCAL_STROAGE: any;
     get stroagePath() {
         return path.join(this.stroageDir, this.namespace)
     }
@@ -44,7 +51,7 @@ export class FileLocalStroage {
     /**
      * 键值对会同步存在这里
      */
-    _map = {}
+    private _map = {}
     get map() {
         return this._map
     }
@@ -54,10 +61,13 @@ export class FileLocalStroage {
      */
     useMapCache = false
     /**
+     * @ignore
+     */
+    private _proxy
+    /**
      * 对象会创建一个proxy对象
      * 用于实现类似功能 localStorage.aa = {a: 1}
      */
-    _proxy
     get proxy() {
         return this._proxy
     }
@@ -137,13 +147,19 @@ export class FileLocalStroage {
             this.suffix = ''
         }
         let fls = new FileLocalStroage(opt)
-        this.__All_FILE_LOCAL_STROAGE.push(fls)
         return fls
     }
 
     resolveItemPath(item) {
         return path.join(this.stroagePath, encodeURIComponent(item) + this.suffix)
     }
+    /** 
+     * 设置项目
+     *      一个和浏览器上用法一致的函数
+     *      
+     * @param item A string containing the name of the key you want to create/update.
+     * @param value A string containing the value you want to give the key you are creating/updating.
+     */
     setItem(item, value) {}
     _setItem(item, value) {
         this._map[item] = value
@@ -212,9 +228,16 @@ export class FileLocalStroage {
     }
 }
 
-var _default = new FileLocalStroage(null)
+export class FileLocalStroageJson extends FileLocalStroage {
+
+}
+
+var _default = new FileLocalStroageJson(null)
 export default _default
 
+/**
+ * @interface Opt
+ */
 export interface Opt {
       /**
      * 存储目录 默认file-local-stroage-cache
@@ -242,6 +265,5 @@ export const create = (opt: Opt):FileLocalStroage => {
     return _default.create.apply(_default, [opt])
 }
 
-FileLocalStroage.prototype.__All_FILE_LOCAL_STROAGE = new Array()
 
 
