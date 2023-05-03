@@ -1,269 +1,335 @@
-var fs = require('fs');
-var path = require('path');
+var fs = require("fs");
+var path = require("path");
 /**
- * 一个模拟浏览器localstorage的存储类
+ * 一个使用目录与文件作为存储结构的存储类，它提供与浏览器localstorage相似的方法函数对是数据进行操作，
+ * 存储API的存储接口提供对本地存储的访问。例如，它允许添加、修改或删除存储的数据项。
  * @interface [Opt]
- * @constructor 
+ * @constructor
  */
 export class FileLocalStroage {
-    /**
-     * 存储目录
-     */
-    stroageDir = 'file-local-stroage-cache';
-    /**
-     * 当前存储的名称
-     */
-    namespace = 'default';
-    /**
-     * @ignore
-     */
-    _stroagePath = ''
-    /**
-     * 当前存储目录，由存储目录与当前存储名称组成
-    */
-    get stroagePath() {
-        return path.join(this.stroageDir, this.namespace)
+  /**
+   * @private
+   * @readonly
+   * {@link Opt.stroageDir}
+   * 存储目录
+   */
+  private stroageDir = "file-local-stroage-cache";
+
+  /**
+   * @private
+   * @readonly
+   * @ignore
+   * 当前存储的名称
+   */
+  private namespace = "default";
+
+  /**
+   * 当前存储目录，由存储目录与当前存储名称组成
+   */
+  get stroagePath() {
+    return path.join(this.stroageDir, this.namespace);
+  }
+  /**
+   * @private
+   * @readonly
+   * @ignore
+   * 是否自动转换JSON，默认为true，对数据进行JSON.stringify操作
+   */
+  private autoJson = true;
+  /**
+   * @ignore
+   * @param value
+   */
+  private setAutoJson(value) {
+    this.autoJson = value;
+    if (value === false) {
+      this.getItem = this.getItemRaw;
+      this.setItem = this.setItemRaw;
     }
-    /**
-     * 是否自动转换JSON
-     */
-    autoJson = true
-    setAutoJson(value) {
-        if (value === false) {
-            this.autoJson = false
-            this.getItem = this._getItem
-            this.setItem = this._setItem
+  }
+  /**
+   * @private
+   * @readonly
+   * json.stringify使用的空格, 当autoJson参数为true才会生效
+   */
+  private jsonSpace = 4;
+
+  /**
+   * @private
+   * @readonly
+   * 文件后缀，存储
+   */
+  private suffix = ".json";
+  /**
+   * 键值对会同步存在这里
+   */
+  private map = {};
+
+  /**
+   * 是否从map中读取数据，默认每次都读取文件
+   * 如果设置为true则判断map中是否存在信息，如果存在就不读取文件了
+   */
+  useMapCache = false;
+  /**
+   * 对象会创建一个proxy对象
+   * 用于实现类似功能 localStorage.aa = {a: 1}
+   */
+  private proxy: any;
+
+  constructor(opt: Opt) {
+    if (!opt) return this;
+    Object.assign(this, opt);
+    if (!fs.existsSync(this.stroageDir)) {
+      try {
+        fs.mkdirSync(this.stroageDir);
+      } catch (e) {
+        throw e;
+      }
+    }
+    if (!fs.existsSync(this.stroagePath)) {
+      fs.mkdirSync(this.stroagePath);
+    }
+    this.setAutoJson(opt.autoJson);
+    this.proxy = new Proxy(this.map, {
+      get: (target, key) => {
+        if (!this.autoJson) {
+          return this.getItem(<string>key);
         } else {
-            this.autoJson = true
-            this.getItem = this._getItemJson
-            this.setItem = this._setItemJson
-        }
-    }
-    /**
-     * json.stringify使用的空格
-     */
-    jsonSpace = 4
-
-    /**
-     * 文件后缀
-     */
-    suffix = '.json'
-    /**
-     * 键值对会同步存在这里
-     */
-    private _map = {}
-    get map() {
-        return this._map
-    }
-    /**
-     * 是否从map中读取数据，默认每次都读取文件
-     * 如果设置为true则判断map中是否存在信息，如果存在就不读取文件了
-     */
-    useMapCache = false
-    /**
-     * @ignore
-     */
-    private _proxy
-    /**
-     * 对象会创建一个proxy对象
-     * 用于实现类似功能 localStorage.aa = {a: 1}
-     */
-    get proxy() {
-        return this._proxy
-    }
-    constructor(opt) {
-        if (!opt) return this
-        Object.assign(this, opt)
-        if (!fs.existsSync(this.stroageDir)) {
-            try {
-                fs.mkdirSync(this.stroageDir)
-            } catch (e) {
-                throw e
-            }
-        }
-        if (!fs.existsSync(this.stroagePath)) {
-            fs.mkdirSync(this.stroagePath)
-        }
-        this.setAutoJson(opt.autoJson)
-        this._proxy = new Proxy(this._map, {
-            get: (target, key) => {
-                if (!this.autoJson) {
-                    return this.getItem(key)
-                } else {
-                    var v =this.getItem(key)
-                    var handle = {
-                        get: (subTarget, name) => {
-                            var res = Reflect.get(subTarget, name)
-                            if (typeof res === 'object') {
-                                return new Proxy(res, handle)
-                            } else {
-                                return res
-                            }
-                        },
-                        set:(subTarget, name, value,receiver) => {
-                            var success = Reflect.set(subTarget, name, value, receiver);
-                            if (success) {
-                                this.setItem(key, v)
-                            }
-                            return success
-                        },
-                        deleteProperty: (subTarget, name): boolean => {
-                            var res = Reflect.deleteProperty(subTarget, name);
-                            this.setItem(key, v)
-                            return res
-
-                        },
-                    }
-                    return new Proxy(v, handle)
-                }
+          var v = this.getItem(<string>key);
+          var handle = {
+            get: (subTarget, name) => {
+              var res = Reflect.get(subTarget, name);
+              if (typeof res === "object") {
+                return new Proxy(res, handle);
+              } else {
+                return res;
+              }
             },
-            set: (target, key, value): boolean => {
-                this.setItem(key, value)
-                return true
+            set: (subTarget, name, value, receiver) => {
+              var success = Reflect.set(subTarget, name, value, receiver);
+              if (success) {
+                this.setItem(key, v);
+              }
+              return success;
             },
-            deleteProperty: (target, key):boolean => {
-                this.removeItem(key)
-                return true
+            deleteProperty: (subTarget, name): boolean => {
+              var res = Reflect.deleteProperty(subTarget, name);
+              this.setItem(key, v);
+              return res;
             },
-            getPrototypeOf: (target) => {
-                return target
-            }
-        })
-        if (this.useMapCache) {
-            this.loadStroage()
+          };
+          return new Proxy(v, handle);
         }
-        return this
+      },
+      set: (target, key, value): boolean => {
+        this.setItem(key, value);
+        return true;
+      },
+      deleteProperty: (target, key): boolean => {
+        this.removeItem(key);
+        return true;
+      },
+      getPrototypeOf: (target) => {
+        return target;
+      },
+    });
+    if (this.useMapCache) {
+      this.loadStroage();
     }
+    return this;
+  }
 
-    create(opt = {
-        stroageDir: this.stroageDir,
-        namespace: this.namespace,
-        autoJson: this.autoJson,
-        useMapCache: this.useMapCache,
-        jsonSpace: this.jsonSpace,
-        suffix: this.suffix
-    }) {
-        if (opt.autoJson === false) {
-            this.suffix = ''
-        }
-        let fls = new FileLocalStroage(opt)
-        return fls
+  create(
+    opt = <Opt> {
+      stroageDir: this.stroageDir,
+      namespace: this.namespace,
+      autoJson: this.autoJson,
+      useMapCache: this.useMapCache,
+      jsonSpace: this.jsonSpace,
+      suffix: this.suffix,
+    },
+  ) {
+    if (opt.autoJson === false) {
+      opt.suffix = "";
+    } else {
+      opt.autoJson = true;
     }
+    let fls = new FileLocalStroage(opt);
+    return fls;
+  }
 
-    resolveItemPath(item) {
-        return path.join(this.stroagePath, encodeURIComponent(item) + this.suffix)
-    }
-    /** 
-     * 设置项目
-     *      一个和浏览器上用法一致的函数
-     *      
-     * @param item A string containing the name of the key you want to create/update.
-     * @param value A string containing the value you want to give the key you are creating/updating.
-     */
-    setItem(item, value) {}
-    _setItem(item, value) {
-        this._map[item] = value
-        fs.writeFileSync(this.resolveItemPath(item), value.toString())
-        return this
-    }
-    __getItem(item):any {
-        let p = this.resolveItemPath(item)
-        if (fs.existsSync(p)) {
-            var str = fs.readFileSync(p)
-            if (!this.map[item]) {
-                this.map[item] = str
-            }
-            return str
-        } else {
-            delete this.map[item]
-        }
-    }
-    getItem(item):any {}
-    _getItem(item):any {
-        if (this.useMapCache && this.map[item]) {
-            return this.map[item]
-        }
-        return this.__getItem(item)
-    }
+  resolveItemPath(item) {
+    return path.join(this.stroagePath, encodeURIComponent(item) + this.suffix);
+  }
+  /**
+   * 设置键名对应的键值，如果存在键名，则覆盖原有的键名键值，会同步设置当前存储对象的map属性
+   * 
+   * 当autoJson为true时 改方法会被改写为 setItemJson
+   * 
+   * 设置后产生存储文件,文件路径由当前存储对象属性 ./stroageDir/namespace/item.suffix 组成
+   * item会通过encodeURIComponent进行编码
+   *
+   * @param {string} item - 需要存储的键名
+   * @param {string | object} value - 需要存储的键值 autoJson 为true时
+   */
+  setItem(item, value) {
+    return this.setItemJson(item, value)
+  }
+  /**
+   * 设置键名对应的键值
+   * @param {string} item - 需要存储的键名
+   * @param {string} value - 需要存储的键值
+   * @returns 
+   */
+  setItemRaw(item, value) {
+    this.map[item] = value;
+    fs.writeFileSync(this.resolveItemPath(item), value.toString());
+    return this;
+  }
+  /**
+   * 设置键名对应的键值， 值会进行JSON.stringify处理
+   * @param {string} item - 需要存储的键名
+   * @param {object} value - 需要存储的键值
+   * @returns 
+   */
+  setItemJson(item, value) {
+    return this.setItemRaw(item, JSON.stringify(value, null, this.jsonSpace));
+  }
+  /**
+   * 根据键名，从当前存储对象中获取键值， 如果useMapCache为true从属性map中读取键值，否则从存储文件中读取值
+   * @param item - 需要获取键值的键名
+   * @returns 
+   */
+  getItem(item): any {
+    return this.getItemJson(item)
 
-    _setItemJson(item, value) {
-        return this._setItem(item, JSON.stringify(value, null, this.jsonSpace))
+  }
+  getItemTest(item) {
+    if (this.useMapCache && this.map[item]) {
+      return this.getMapItem(item)
     }
+    return this.getItemRaw(item);  
+  }
+  /**
+   * 根据键名，从当前存储对象中获取键值，从文件中获取键值，并同步到当前的map属性中
+   * @param item - 需要获取键值的键名
+   * @returns 
+   */
+  getItemRaw(item): any {
+    let p = this.resolveItemPath(item);
+    if (fs.existsSync(p)) {
+      var str = fs.readFileSync(p);
+      this.map[item] = str;
+      return str;
+    } else {
+      delete this.map[item];
+    }
+  }
 
-    _getItemJson(item):any {
-        let str = this._getItem(item)
-        if (str) {
-            return JSON.parse(str)
-        }
+  /**
+   * 根据键名，从当前存储对象中获取键值，并进行JSON.parse解释
+   * @param item - 需要获取键值的键名
+   * @returns 
+   */
+  getItemJson(item): any {
+    var str
+    if (this.useMapCache && this.map[item]) {
+      str = this.getMapItem(item)
+    } else {
+      str = this.getItemRaw(item);
     }
+    if (str) {
+      return JSON.parse(str);
+    }
+  }
+  /**
+   * 根据键名，从当前存储对象中map属性获取键值
+   * @param item - 需要获取键值的键名
+   * @returns 
+   */
+  getMapItem(item) {
+    if (this.map[item]) {
+      if (this.autoJson) {
+        return JSON.parse(this.map[item])
+      }
+    } else {
+      return this.getItemRaw(item)
+    }
+  }
+  /**
+   * 根据键名，从当前对象中删除存储的键值，删除map中的属性，及对应的存储文件
+   * @param item - 需要删除的键名
+   * @returns
+   */
+  removeItem(item) {
+    delete this.map[item];
+    let p = this.resolveItemPath(item);
+    if (fs.existsSync(p)) {
+      fs.unlinkSync(p);
+    }
+    return this;
+  }
+  /**
+   * 获取当前存储对象的所有键名
+   * @returns {string[]}
+   */
+  get keys(): string[] {
+    return fs.readdirSync(this.stroagePath).map((_) =>
+      decodeURIComponent(path.basename(_, this.suffix))
+    );
+  }
 
-    removeItem(item) {
-        delete this._map[item]
-        let p = this.resolveItemPath(item)
-        if (fs.existsSync(p)) {
-            fs.unlinkSync(p)
-        }
-        return this
-    }
-
-    get keys() {
-        return fs.readdirSync(this.stroagePath).map(_ => decodeURIComponent(path.basename(_, this.suffix)))
-    }
-
-    loadStroage() {
-        this.keys.forEach((item) => {
-            this.__getItem(item)
-        })
-        return this
-    }
-
-    clearAll() {
-        this.keys.forEach((item) => {
-            fs.unlinkSync(this.resolveItemPath(item))
-        })
-    }
-
-    clear(item) {
-        fs.unlinkSync(this.resolveItemPath(item))
-    }
+  /**
+   * 加载当前存储所有的键名，然后同步一次到当前对象的map属性
+   * @returns 
+   */
+  loadStroage() {
+    this.keys.forEach((item) => {
+      this.getItemRaw(item);
+    });
+    return this;
+  }
+  /**
+   * 清除当前存储所有键名，键值，map属性以及存储文件
+   * @returns 
+   */
+  clear() {
+    this.keys.forEach((item) => {
+      this.removeItem(item);
+    });
+    return this;
+  }
 }
 
-export class FileLocalStroageJson extends FileLocalStroage {
-
-}
-
-var _default = new FileLocalStroageJson(null)
-export default _default
+var _default = new FileLocalStroage(null);
+export default _default;
 
 /**
  * @interface Opt
  */
 export interface Opt {
-      /**
-     * 存储目录 默认file-local-stroage-cache
-     */
-      stroageDir: string;
-      /**
-       * 当前存储的名称 默认default
-       */
-      namespace: string;
-      /**
-       * 是否自动转换JSON 默认true
-       */
-      autoJson: boolean;
-      /**
-       * json.stringify使用的空格 默认缩进4
-       */
-      jsonSpace: number;
-      /**
-       * 文件后缀 默认.json
-       */
-      suffix: string;
+  /**
+   * 存储目录 默认file-local-stroage-cache
+   */
+  stroageDir: string;
+  /**
+   * 当前存储的名称 默认default
+   */
+  namespace: string;
+  /**
+   * 是否自动转换JSON 默认true
+   */
+  autoJson: boolean;
+  /**
+   * json.stringify使用的空格 默认缩进4
+   */
+  jsonSpace: number;
+  /**
+   * 文件后缀 默认.json
+   */
+  suffix: string;
 }
 
-export const create = (opt: Opt):FileLocalStroage => { 
-    return _default.create.apply(_default, [opt])
-}
-
-
-
+export const create = (opt: Opt): FileLocalStroage => {
+  return _default.create.apply(_default, [opt]);
+};
