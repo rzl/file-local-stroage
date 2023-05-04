@@ -43,7 +43,7 @@ export class FileLocalStroage {
   private setAutoJson(value) {
     this.autoJson = value;
     if (value === false) {
-      this.getItem = this.getItemRaw;
+      this.getItem = this.getItemCache;
       this.setItem = this.setItemRaw;
     }
   }
@@ -64,6 +64,11 @@ export class FileLocalStroage {
    * 键值对会同步存在这里
    */
   private map = {};
+
+  /**
+   * 当autoJson为true时，键值对会同步存在这里， 值以JSON对象存储，一般用于内容搜索
+   */
+  private mapJson = {};
 
   /**
    * 是否从map中读取数据，默认每次都读取文件
@@ -193,7 +198,9 @@ export class FileLocalStroage {
    * @returns 
    */
   setItemJson(item, value) {
-    return this.setItemRaw(item, JSON.stringify(value, null, this.jsonSpace));
+    let str = JSON.stringify(value, null, this.jsonSpace)
+    this.mapJson[item] = JSON.parse(str)
+    return this.setItemRaw(item, str);
   }
   /**
    * 根据键名，从当前存储对象中获取键值， 如果useMapCache为true从属性map中读取键值，否则从存储文件中读取值
@@ -202,9 +209,13 @@ export class FileLocalStroage {
    */
   getItem(item): any {
     return this.getItemJson(item)
-
   }
-  getItemTest(item) {
+    /**
+   * 根据键名，从当前存储对象中获取键值， 如果useMapCache为true从属性map中读取键值，否则从存储文件中读取值
+   * @param item - 需要获取键值的键名
+   * @returns 
+   */
+  getItemCache(item) {
     if (this.useMapCache && this.map[item]) {
       return this.getMapItem(item)
     }
@@ -220,9 +231,13 @@ export class FileLocalStroage {
     if (fs.existsSync(p)) {
       var str = fs.readFileSync(p);
       this.map[item] = str;
+      if (this.autoJson) {
+        this.mapJson[item] = JSON.parse(str)
+      }
       return str;
     } else {
       delete this.map[item];
+      delete this.mapJson[item];
     }
   }
 
@@ -263,6 +278,7 @@ export class FileLocalStroage {
    */
   removeItem(item) {
     delete this.map[item];
+    delete this.mapJson[item];
     let p = this.resolveItemPath(item);
     if (fs.existsSync(p)) {
       fs.unlinkSync(p);

@@ -52,6 +52,10 @@ export declare class FileLocalStroage {
      */
     private map;
     /**
+     * 当autoJson为true时，键值对会同步存在这里， 值以JSON对象存储，一般用于内容搜索
+     */
+    private mapJson;
+    /**
      * 是否从map中读取数据，默认每次都读取文件
      * 如果设置为true则判断map中是否存在信息，如果存在就不读取文件了
      */
@@ -96,7 +100,12 @@ export declare class FileLocalStroage {
      * @returns
      */
     getItem(item: any): any;
-    getItemTest(item: any): any;
+    /**
+   * 根据键名，从当前存储对象中获取键值， 如果useMapCache为true从属性map中读取键值，否则从存储文件中读取值
+   * @param item - 需要获取键值的键名
+   * @returns
+   */
+    getItemCache(item: any): any;
     /**
      * 根据键名，从当前存储对象中获取键值，从文件中获取键值，并同步到当前的map属性中
      * @param item - 需要获取键值的键名
