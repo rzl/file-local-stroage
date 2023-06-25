@@ -56,6 +56,10 @@ export declare class FileLocalStroage {
      */
     private mapJson;
     /**
+     * 获取数组形式的mapJson数据
+     */
+    get listJson(): any[];
+    /**
      * 是否从map中读取数据，默认每次都读取文件
      * 如果设置为true则判断map中是否存在信息，如果存在就不读取文件了
      */
