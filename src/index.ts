@@ -161,7 +161,9 @@ export class FileLocalStroage {
     },
   ) {
     if (opt.autoJson === false) {
-      opt.suffix = "";
+      if (opt.suffix === undefined) {
+        opt.suffix = ''
+      }
     } else {
       opt.autoJson = true;
     }
@@ -235,7 +237,7 @@ export class FileLocalStroage {
   getItemRaw(item): any {
     let p = this.resolveItemPath(item);
     if (fs.existsSync(p)) {
-      var str = fs.readFileSync(p);
+      var str = fs.readFileSync(p, 'utf-8');
       this.map[item] = str;
       if (this.autoJson) {
         this.mapJson[item] = JSON.parse(str)
